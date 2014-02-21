@@ -2,10 +2,11 @@
 # coding: latin-1
 
 # Libraries import
+import math
 import pygame
+import random
 import sys
 import time
-import math
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
@@ -96,11 +97,9 @@ class IndividualSolution(object):
         self._citiesPathList = []
         self._citiesPathValue = 0
 
-    def addCityPath(self, cityPath):
-        if len(self._citiesPathList) > 0:
-            self._citiesPathValue += 
-        
-        self._citiesPathList.append(cityPath)
+    def addCityToPath(self, city, distance):
+        self._citiesPathList.append(city)
+        self._citiesPathValue += distance
 
     def getCitiesPathList(self):
         return self._citiesPathList
@@ -120,15 +119,29 @@ def ga_initialization(cities):
 
         # Greedy algorithm
         citiesCopy = list(cities)
-        cityIndex = random.randrange(0, 5000)
+        cityIndex = random.randrange(0, len(citiesCopy))
 
         individualSolution = IndividualSolution()
         
+        lastCity = citiesCopy.pop(cityIndex)
+        individualSolution.addCityToPath(lastCity, 0)
+        
         while len(citiesCopy) > 0:
-            for city in citiesCopy:
+            minDistance = -1
+            
+            for i, city in enumerate(citiesCopy):
+                currentDistance = lastCity.getDistance(city)
                 
+                if minDistance == -1 or minDistance > currentDistance:
+                    cityIndex = i
+                    minDistance = currentDistance
 
-        population.append(IndividualSolution())
+            lastCity = citiesCopy.pop(cityIndex)
+            individualSolution.addCityToPath(lastCity, minDistance)
+
+        population.append(individualSolution)
+
+    return population
 
 # Selection of the genetic algorithm
 def ga_selection():
@@ -161,6 +174,8 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     
     # Create initial population and return list individual solution
     population = ga_initialization(cities)
+
+    return None
     
     while True:
         
