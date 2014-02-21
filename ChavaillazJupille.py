@@ -53,7 +53,7 @@ class GuiManager(object):
 
             GuiManager.guiOpened = False
 
-# Classes representing cities with a name and a location (x, y)
+# Class representing cities with a name and a location (x, y)
 class City(object):
 
     def __init__(self, name, x, y):
@@ -83,6 +83,33 @@ class City(object):
     def getLocation(self):
         return (self.getX(), self.getY())
 
+# Class representing individual solution of the travelling salesman problem
+class IndividualSolution(object):
+
+    def __init__(self):
+        self._citiesPathList = []
+        self._citiesPathValue = 0
+
+    def getCitiesPathList(self):
+        return self._citiesPathList
+
+    def setCitiesPathList(self, citiesPathList):
+        self._citiesPathList = citiesPathList
+
+    def getCitiesPathValue(self):
+        return self._citiesPathValue
+
+    def setCitiesPathValue(self, citiesPathValue):
+        self._citiesPathValue = citiesPathValue
+
+# Initialization of the genetic algorithm
+def ga_initialization():
+    pass
+
+# Selection of the genetic algorithm
+def ga_selection():
+    pass
+
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
     cities = None
@@ -92,6 +119,8 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     else:
         GuiManager.openGui()
         cities = getCitiesByGui()
+
+    
 
     if gui:
         GuiManager.openGui()
