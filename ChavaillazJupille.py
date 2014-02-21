@@ -90,21 +90,39 @@ class IndividualSolution(object):
         self._citiesPathList = []
         self._citiesPathValue = 0
 
+    def addCityPath(self, cityPath):
+        if len(self._citiesPathList) > 0:
+            self._citiesPathValue += 
+        
+        self._citiesPathList.append(cityPath)
+
     def getCitiesPathList(self):
         return self._citiesPathList
-
-    def setCitiesPathList(self, citiesPathList):
-        self._citiesPathList = citiesPathList
 
     def getCitiesPathValue(self):
         return self._citiesPathValue
 
-    def setCitiesPathValue(self, citiesPathValue):
-        self._citiesPathValue = citiesPathValue
+def calculatePopulationSize(citiesCount):
+    return 5000
 
 # Initialization of the genetic algorithm
-def ga_initialization():
-    pass
+def ga_initialization(cities):
+    population = []
+
+    # Generate enough population, based on cities count
+    for i in range(calculatePopulationSize(len(cities))):
+
+        # Greedy algorithm
+        citiesCopy = list(cities)
+        cityIndex = random.randrange(0, 5000)
+
+        individualSolution = IndividualSolution()
+        
+        while len(citiesCopy) > 0:
+            for city in citiesCopy:
+                
+
+        population.append(IndividualSolution())
 
 # Selection of the genetic algorithm
 def ga_selection():
