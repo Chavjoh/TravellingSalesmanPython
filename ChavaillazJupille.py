@@ -5,6 +5,7 @@
 import pygame
 import sys
 import time
+import math
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
@@ -82,6 +83,11 @@ class City(object):
 
     def getLocation(self):
         return (self.getX(), self.getY())
+        
+    def getDistance(self, otherCity):
+        deltaX = self.getX() - otherCity.getX()
+        deltaY = self.getY() - otherCity.getY()
+        return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
 
 # Class representing individual solution of the travelling salesman problem
 class IndividualSolution(object):
@@ -128,6 +134,14 @@ def ga_initialization(cities):
 def ga_selection():
     pass
 
+# Crossover function
+def ga_crossover():
+    pass
+
+# Checks if the result varies from a delta
+def ga_checkResultStagnation():
+    pass
+
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
     cities = None
@@ -137,19 +151,45 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     else:
         GuiManager.openGui()
         cities = getCitiesByGui()
-
     
-
     if gui:
         GuiManager.openGui()
     else:
         GuiManager.closeGui()
 
-    # time example : time.time() -> timestamp
-
-    GuiManager.closeGui()
+    startTimestamp = time.time()
     
-    return None
+    # Create initial population and return list individual solution
+    population = ga_initialization(cities)
+    
+    while True:
+        
+        # Selection in population
+        ga_selection(population)
+        
+        # Crossing population
+        ga_crossing(population);
+        
+        # Mutation of the population
+        ga_mutation(population);
+        
+        # Calculate distance
+        
+        
+        # Break if maxtime is reached
+        if maxtime > 0:
+            if time.time() - startTimestamp > maxtime:
+                break
+        # Break if result is stagnating
+        else:
+            if ga_checkResultStagnation():
+                break
+    
+    # Calculate city name list
+    
+    
+    # Return expected result
+    return [distance, cityNameList]
 
 # Get towns in a file containing names and locations (x, y)
 def getCitiesByFile(citiesFilePath):
