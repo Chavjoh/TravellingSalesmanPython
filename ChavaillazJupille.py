@@ -5,6 +5,7 @@
 import pygame
 import sys
 import time
+import math
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
@@ -96,6 +97,20 @@ class City(object):
 
     def getLocation(self):
         return (self.getX(), self.getY())
+		
+	def getDistance(self, otherCity):
+		deltaX = self.getX() - otherCity.getX()
+		deltaY = self.getY() - otherCity.getY()
+
+		return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
+
+# Crossover function
+def ga_crossover():
+	pass
+
+# Check if 
+def ga_checkResultStagnation():
+	pass
 
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
@@ -110,9 +125,39 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     if not gui and guiOpened:
         closeGui()
 
-    # time example : time.time() -> timestamp
-    
-    return None
+	startTimestamp = time.time()
+	
+	# Create initial population and return list individual solution
+	population = ga_initialization(cities)
+	
+	while True:
+		
+		# Selection in population
+		ga_selection(population)
+		
+		# Crossing population
+		ga_crossing(population);
+		
+		# Mutation of the population
+		ga_mutation(population);
+		
+		# Calculate distance
+		
+		
+		# Break if maxtime is reached
+		if maxtime > 0:
+			if time.time() - startTimestamp > maxtime:
+				break
+		# Break if result is stagnating
+		else:
+			if ga_checkResultStagnation():
+				break
+	
+	# Calculate city name list
+	
+	
+	# Return expected result
+    return [distance, cityNameList]
 
 # Get towns in a file containing names and locations (x, y)
 def getCitiesByFile(citiesFilePath):
