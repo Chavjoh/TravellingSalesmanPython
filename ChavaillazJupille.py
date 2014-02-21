@@ -9,18 +9,6 @@ import math
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
-# Globals variables
-cityRadius = 3
-
-color_black = [0, 0, 0]
-color_red = [255, 0, 0]
-
-guiOpened = False
-
-screen_dimensions = (500, 500)
-screen_window = None
-screen_surface = None
-
 # Use to manage GUI of pygame
 class GuiManager(object):
 
@@ -37,38 +25,36 @@ class GuiManager(object):
     screenDimensions = (500, 500)
     screenWindow = None
     screenSurface = None
+    screenTitle = 'Travelling salesman solver - Chavaillaz & Jupille'
 
     @staticmethod
     def openGui():
-        if not guiOpened:
+        if not GuiManager.guiOpened:
         
             # Pygame initialization
             pygame.init()
-            pygame.display.set_caption('Travelling salesman solver - Chavaillaz & Jupille')
+            pygame.display.set_caption(GuiManager.screenTitle)
 
             # Create window and get useful informations
-            screen_window = pygame.display.set_mode(screen_dimensions)
-            screen_surface = pygame.display.get_surface()
+            GuiManager.screenWindow = pygame.display.set_mode(GuiManager.screenDimensions)
+            GuiManager.screenSurface = pygame.display.get_surface()
 
-            guiOpened = True
+            GuiManager.guiOpened = True
 
     @staticmethod
     def closeGui():
-        if guiOpened:
+        if GuiManager.guiOpened:
         
             # Delete informations
-            screen_window = None
-            screen_surface = None
+            GuiManager.screenWindow = None
+            GuiManager.screenSurface = None
 
             # Close window
             pygame.display.quit()
 
-            guiOpened = False
+            GuiManager.guiOpened = False
 
-    @staticmethod
-    
-
-# Classes representing cities with a name and a location (x, y)
+# Class representing cities with a name and a location (x, y)
 class City(object):
 
     def __init__(self, name, x, y):
@@ -97,20 +83,46 @@ class City(object):
 
     def getLocation(self):
         return (self.getX(), self.getY())
-		
-	def getDistance(self, otherCity):
-		deltaX = self.getX() - otherCity.getX()
-		deltaY = self.getY() - otherCity.getY()
+        
+    def getDistance(self, otherCity):
+        deltaX = self.getX() - otherCity.getX()
+        deltaY = self.getY() - otherCity.getY()
+        return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
 
-		return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
+# Class representing individual solution of the travelling salesman problem
+class IndividualSolution(object):
+
+    def __init__(self):
+        self._citiesPathList = []
+        self._citiesPathValue = 0
+
+    def getCitiesPathList(self):
+        return self._citiesPathList
+
+    def setCitiesPathList(self, citiesPathList):
+        self._citiesPathList = citiesPathList
+
+    def getCitiesPathValue(self):
+        return self._citiesPathValue
+
+    def setCitiesPathValue(self, citiesPathValue):
+        self._citiesPathValue = citiesPathValue
+
+# Initialization of the genetic algorithm
+def ga_initialization():
+    pass
+
+# Selection of the genetic algorithm
+def ga_selection():
+    pass
 
 # Crossover function
 def ga_crossover():
-	pass
+    pass
 
-# Check if 
+# Checks if the result varies from a delta
 def ga_checkResultStagnation():
-	pass
+    pass
 
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
@@ -119,44 +131,46 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     if file != None:
         cities = getCitiesByFile(file)
     else:
-        openGui()
+        GuiManager.openGui()
         cities = getCitiesByGui()
+    
+    if gui:
+        GuiManager.openGui()
+    else:
+        GuiManager.closeGui()
 
-    if not gui and guiOpened:
-        closeGui()
-
-	startTimestamp = time.time()
-	
-	# Create initial population and return list individual solution
-	population = ga_initialization(cities)
-	
-	while True:
-		
-		# Selection in population
-		ga_selection(population)
-		
-		# Crossing population
-		ga_crossing(population);
-		
-		# Mutation of the population
-		ga_mutation(population);
-		
-		# Calculate distance
-		
-		
-		# Break if maxtime is reached
-		if maxtime > 0:
-			if time.time() - startTimestamp > maxtime:
-				break
-		# Break if result is stagnating
-		else:
-			if ga_checkResultStagnation():
-				break
-	
-	# Calculate city name list
-	
-	
-	# Return expected result
+    startTimestamp = time.time()
+    
+    # Create initial population and return list individual solution
+    population = ga_initialization(cities)
+    
+    while True:
+        
+        # Selection in population
+        ga_selection(population)
+        
+        # Crossing population
+        ga_crossing(population);
+        
+        # Mutation of the population
+        ga_mutation(population);
+        
+        # Calculate distance
+        
+        
+        # Break if maxtime is reached
+        if maxtime > 0:
+            if time.time() - startTimestamp > maxtime:
+                break
+        # Break if result is stagnating
+        else:
+            if ga_checkResultStagnation():
+                break
+    
+    # Calculate city name list
+    
+    
+    # Return expected result
     return [distance, cityNameList]
 
 # Get towns in a file containing names and locations (x, y)
@@ -206,10 +220,10 @@ def getCitiesByGui():
                 cities.append(City('v{0}'.format(nextCityId), pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1]))
                 nextCityId += 1
 
-                screen_surface.fill(color_black)
+                GuiManager.screenSurface.fill(GuiManager.colorBlack)
 
                 for city in cities:
-                    pygame.draw.circle(screen_surface, color_red, city.getLocation(), cityRadius)
+                    pygame.draw.circle(GuiManager.screenSurface, GuiManager.colorRed, city.getLocation(), GuiManager.cityRadius)
 
                 # Flip display (double buffering)
                 pygame.display.flip()
