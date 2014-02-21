@@ -8,18 +8,6 @@ import time
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
-# Globals variables
-cityRadius = 3
-
-color_black = [0, 0, 0]
-color_red = [255, 0, 0]
-
-guiOpened = False
-
-screen_dimensions = (500, 500)
-screen_window = None
-screen_surface = None
-
 # Use to manage GUI of pygame
 class GuiManager(object):
 
@@ -36,36 +24,34 @@ class GuiManager(object):
     screenDimensions = (500, 500)
     screenWindow = None
     screenSurface = None
+    screenTitle = 'Travelling salesman solver - Chavaillaz & Jupille'
 
     @staticmethod
     def openGui():
-        if not guiOpened:
+        if not GuiManager.guiOpened:
         
             # Pygame initialization
             pygame.init()
-            pygame.display.set_caption('Travelling salesman solver - Chavaillaz & Jupille')
+            pygame.display.set_caption(GuiManager.screenTitle)
 
             # Create window and get useful informations
-            screen_window = pygame.display.set_mode(screen_dimensions)
-            screen_surface = pygame.display.get_surface()
+            GuiManager.screenWindow = pygame.display.set_mode(GuiManager.screenDimensions)
+            GuiManager.screenSurface = pygame.display.get_surface()
 
-            guiOpened = True
+            GuiManager.guiOpened = True
 
     @staticmethod
     def closeGui():
-        if guiOpened:
+        if GuiManager.guiOpened:
         
             # Delete informations
-            screen_window = None
-            screen_surface = None
+            GuiManager.screenWindow = None
+            GuiManager.screenSurface = None
 
             # Close window
             pygame.display.quit()
 
-            guiOpened = False
-
-    @staticmethod
-    
+            GuiManager.guiOpened = False
 
 # Classes representing cities with a name and a location (x, y)
 class City(object):
@@ -104,13 +90,17 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     if file != None:
         cities = getCitiesByFile(file)
     else:
-        openGui()
+        GuiManager.openGui()
         cities = getCitiesByGui()
 
-    if not gui and guiOpened:
-        closeGui()
+    if gui:
+        GuiManager.openGui()
+    else:
+        GuiManager.closeGui()
 
     # time example : time.time() -> timestamp
+
+    GuiManager.closeGui()
     
     return None
 
@@ -161,10 +151,10 @@ def getCitiesByGui():
                 cities.append(City('v{0}'.format(nextCityId), pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1]))
                 nextCityId += 1
 
-                screen_surface.fill(color_black)
+                GuiManager.screenSurface.fill(GuiManager.colorBlack)
 
                 for city in cities:
-                    pygame.draw.circle(screen_surface, color_red, city.getLocation(), cityRadius)
+                    pygame.draw.circle(GuiManager.screenSurface, GuiManager.colorRed, city.getLocation(), GuiManager.cityRadius)
 
                 # Flip display (double buffering)
                 pygame.display.flip()
