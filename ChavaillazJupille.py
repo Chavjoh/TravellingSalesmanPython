@@ -2,10 +2,11 @@
 # coding: latin-1
 
 # Libraries import
+import math
 import pygame
+import random
 import sys
 import time
-import math
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
@@ -99,21 +100,51 @@ class IndividualSolution(object):
         self._citiesPathList = []
         self._citiesPathValue = 0
 
+    def addCityToPath(self, city, distance):
+        self._citiesPathList.append(city)
+        self._citiesPathValue += distance
+
     def getCitiesPathList(self):
         return self._citiesPathList
-
-    def setCitiesPathList(self, citiesPathList):
-        self._citiesPathList = citiesPathList
 
     def getCitiesPathValue(self):
         return self._citiesPathValue
 
-    def setCitiesPathValue(self, citiesPathValue):
-        self._citiesPathValue = citiesPathValue
+def calculatePopulationSize(citiesCount):
+    return 5000
 
 # Initialization of the genetic algorithm
-def ga_initialization():
-    pass
+def ga_initialization(cities):
+    population = []
+
+    # Generate enough population, based on cities count
+    for i in range(calculatePopulationSize(len(cities))):
+
+        # Greedy algorithm
+        citiesCopy = list(cities)
+        cityIndex = random.randrange(0, len(citiesCopy))
+
+        individualSolution = IndividualSolution()
+        
+        lastCity = citiesCopy.pop(cityIndex)
+        individualSolution.addCityToPath(lastCity, 0)
+        
+        while len(citiesCopy) > 0:
+            minDistance = -1
+            
+            for i, city in enumerate(citiesCopy):
+                currentDistance = lastCity.getDistance(city)
+                
+                if minDistance == -1 or minDistance > currentDistance:
+                    cityIndex = i
+                    minDistance = currentDistance
+
+            lastCity = citiesCopy.pop(cityIndex)
+            individualSolution.addCityToPath(lastCity, minDistance)
+
+        population.append(individualSolution)
+
+    return population
 
 # Selection of the genetic algorithm
 def ga_selection():
@@ -190,6 +221,8 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     
     # Create initial population and return list individual solution
     population = ga_initialization(cities)
+
+    return None
     
     while True:
         
