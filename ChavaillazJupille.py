@@ -2,16 +2,22 @@
 # coding: latin-1
 
 # Libraries import
-import math
 import pygame
-import random
 import sys
 import time
+import math
+import random
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
 def shift(list, number):
     return list[n:] + list[:n]
+
+def static_var(varname, value):
+    def decorate(func):
+        setattr(func, varname, value)
+        return func
+    return decorate
 
 # Use to manage GUI of pygame
 class GuiManager(object):
@@ -107,8 +113,14 @@ class IndividualSolution(object):
     def getCitiesPathList(self):
         return self._citiesPathList
 
+    def setCitiesPathList(self, citiesPathList):
+        self._citiesPathList = citiesPathList
+
     def getCitiesPathValue(self):
         return self._citiesPathValue
+
+    def setCitiesPathValue(self, citiesPathValue):
+        self._citiesPathValue = citiesPathValue
 
 def calculatePopulationSize(citiesCount):
     return 5000
@@ -189,17 +201,44 @@ def ga_crossover(solution1, solution2):
     shift(new1, length - indexPart3)
     shift(new2, length - indexPart3)
     
-    solution1 = new IndividualSolution()
+    solution1 = IndividualSolution()
     solution1.setCitiesPathList(new1)
     
-    solution2 = new IndividualSolution()
+    solution2 = IndividualSolution()
     solution2.setCitiesPathList(new2)
     
     return solution1, solution2    
 
+def ga_mutation_all(population):
+    mutationPourcent = 0.01 # 0.1%
+    
+    sizePopulation = len(population)
+    
+    for i in range(round(sizePopulation * mutationPourcent)):
+        randomIndex = random.randint(0, sizePopulation - 1)
+        population.extend(ga_mutation(population[randomIndex]))
+        
+def ga_mutation(solution):
+    cities = solution.getCitiesPathList()[:]
+    
+    maxIndex = len(cities) - 1
+    randomIndex1 = random.randint(0, maxIndex)
+    randomIndex2 = random.randint(0, maxIndex)
+    
+    cities[randomIndex1], cities[randomIndex2] = cities[randomIndex2], cities[randomIndex1]
+    
+    newSolution = IndividualSolution()
+    newSolution.setCitiesPathList(cities)
+    
+    return newSolution
+
 # Checks if the result varies from a delta
-def ga_checkResultStagnation(population):
-    pass
+@static_var("distance", 0)
+def ga_resultStagnation(bestSolution):
+    deltaAccept = 0.01 # 0.1%
+    deltaCalculate = ga_resultStagnation.distance / bestSolution.getCitiesPathValue()
+    distance = bestSolution.getCitiesPathValue()
+    return (deltaCalculate <= deltaAccept)
 
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
@@ -221,8 +260,6 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     
     # Create initial population and return list individual solution
     population = ga_initialization(cities)
-
-    return None
     
     while True:
         
@@ -230,10 +267,10 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         ga_selection(population)
         
         # Crossing population
-        ga_crossing(population);
+        ga_crossover_all(population)
         
         # Mutation of the population
-        ga_mutation(population);
+        ga_mutation_all(population)
         
         # Calculate distance
         populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getCitiesPathValue())
@@ -247,7 +284,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
                 break
         # Break if result is stagnating
         else:
-            if ga_checkResultStagnation(population):
+            if ga_resultStagnation(bestSolution):
                 break
     
     # Calculate city name list
