@@ -7,11 +7,14 @@ import sys
 import time
 import math
 import random
+from collections import deque
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
-def shift(list, number):
-    return list[n:] + list[:n]
+def shift(l, n):
+    d = deque(l)
+    d.rotate(-3) # to the left
+    return list(d)
 
 def static_var(varname, value):
     def decorate(func):
@@ -63,6 +66,22 @@ class GuiManager(object):
             pygame.display.quit()
 
             GuiManager.guiOpened = False
+    
+    @staticmethod
+    def drawSolution(bestPopulation):
+        if GuiManager.guiOpened:
+            screenSurface.fill(0)
+            
+            oldCity = None
+            
+            for city in bestPopulation.getCitiesPathList():
+                if oldCity != None:
+                    pygame.draw.line(screenSurface, colorWhite, oldCity, city)
+                
+                oldCity = city
+            
+            pygame.draw.line(screenSurface, colorWhite, oldCity, bestPopulation.getCitiesPathList()[0])
+            pygame.display.flip()
 
 # Class representing cities with a name and a location (x, y)
 class City(object):
@@ -90,6 +109,9 @@ class City(object):
 
     def getY(self):
         return self._y
+        
+    def getVertice(self):
+        return [self.getX(), self.getY()]
 
     def getLocation(self):
         return (self.getX(), self.getY())
@@ -115,6 +137,17 @@ class IndividualSolution(object):
 
     def setCitiesPathList(self, citiesPathList):
         self._citiesPathList = citiesPathList
+        
+    def calculateCitiesPathValue(self):
+        oldCity = None
+        
+        for city in self._citiesPathList:
+            if oldCity != None:
+                self._citiesPathValue += oldCity.getDistance(city)
+            
+            oldCity = city;
+        
+        self._citiesPathValue += oldCity.getDistance(self._citiesPathList[0])
 
     def getCitiesPathValue(self):
         return self._citiesPathValue
@@ -159,7 +192,7 @@ def ga_initialization(cities):
     return population
 
 # Selection of the genetic algorithm
-def ga_selection():
+def ga_selection(population):
     pass
 
 # Crossover function
@@ -191,10 +224,10 @@ def ga_crossover(solution1, solution2):
     # Generation of crossover
     for increment in range(length):
         currentIndex = indexPart3 + increment
-        if cities1[currentIndex] not in crossCities2:
-            new1.extend(cities1[currentIndex])
-        if cities2[currentIndex] not in crossCities1:
-            new2.extend(cities2[currentIndex])
+        if cities1[currentIndex % length] not in crossCities2:
+            new1.append(cities1[currentIndex % length])
+        if cities2[currentIndex % length] not in crossCities1:
+            new2.append(cities2[currentIndex % length])
     
     new1.extend(crossCities2)
     new2.extend(crossCities2)
@@ -237,6 +270,8 @@ def ga_mutation(solution):
 def ga_resultStagnation(bestSolution):
     deltaAccept = 0.01 # 0.1%
     deltaCalculate = ga_resultStagnation.distance / bestSolution.getCitiesPathValue()
+    if deltaCalculate  > 1:
+        deltaCalculate -= 1
     distance = bestSolution.getCitiesPathValue()
     return (deltaCalculate <= deltaAccept)
 
@@ -277,6 +312,9 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         
         # Best solution 
         bestSolution = populationSorted[0]
+        print("Best Solution, distance:" + bestPopulation.getCitiesPathList())
+        # Draw solution
+        GuiManager.drawSolution(bestSolution)
         
         # Break if maxtime is reached
         if maxtime > 0:
