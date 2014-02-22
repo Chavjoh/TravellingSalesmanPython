@@ -9,6 +9,9 @@ import math
 
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
+def shift(list, number):
+    return list[n:] + list[:n]
+
 # Use to manage GUI of pygame
 class GuiManager(object):
 
@@ -117,16 +120,60 @@ def ga_selection():
     pass
 
 # Crossover function
-def ga_crossover():
-    pass
+def ga_crossover_all(population):
+    new = []
+    
+    for v1 in range(len(population)):
+        for v2 in range(v1, len(population)):
+            new.extend(ga_crossover(population[v1], population[v2]))
+    
+    population.extend(new)
+
+def ga_crossover(solution1, solution2):
+    new1 = []
+    new2 = []
+    cities1 = solution1.getCitiesPathList()
+    cities2 = solution2.getCitiesPathList()
+    
+    #len(cities1) == len(cities2)
+    length = len(cities1)
+    
+    # indexPart1 = 0
+    indexPart2 = math.floor(length / 3)
+    indexPart3 = math.ceil(2 * length / 3)
+    
+    crossCities1 = cities1[indexPart2:indexPart3]
+    crossCities2 = cities2[indexPart2:indexPart3]
+    
+    # Generation of crossover
+    for increment in range(length):
+        currentIndex = indexPart3 + increment
+        if cities1[currentIndex] not in crossCities2:
+            new1.extend(cities1[currentIndex])
+        if cities2[currentIndex] not in crossCities1:
+            new2.extend(cities2[currentIndex])
+    
+    new1.extend(crossCities2)
+    new2.extend(crossCities2)
+    shift(new1, length - indexPart3)
+    shift(new2, length - indexPart3)
+    
+    solution1 = new IndividualSolution()
+    solution1.setCitiesPathList(new1)
+    
+    solution2 = new IndividualSolution()
+    solution2.setCitiesPathList(new2)
+    
+    return solution1, solution2    
 
 # Checks if the result varies from a delta
-def ga_checkResultStagnation():
+def ga_checkResultStagnation(population):
     pass
 
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
     cities = None
+    bestSolution = None
     
     if file != None:
         cities = getCitiesByFile(file)
@@ -156,7 +203,10 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         ga_mutation(population);
         
         # Calculate distance
+        populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getCitiesPathValue())
         
+        # Best solution 
+        bestSolution = populationSorted[0]
         
         # Break if maxtime is reached
         if maxtime > 0:
@@ -164,14 +214,14 @@ def ga_solve(file = None, gui = True, maxtime = 0):
                 break
         # Break if result is stagnating
         else:
-            if ga_checkResultStagnation():
+            if ga_checkResultStagnation(population):
                 break
     
     # Calculate city name list
-    
+    cityNameList = [x.getName() for x in bestSolution.getCitiesPathList()]
     
     # Return expected result
-    return [distance, cityNameList]
+    return bestSolution, cityNameList
 
 # Get towns in a file containing names and locations (x, y)
 def getCitiesByFile(citiesFilePath):
