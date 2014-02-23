@@ -137,6 +137,7 @@ class IndividualSolution(object):
 
     def setCitiesPathList(self, citiesPathList):
         self._citiesPathList = citiesPathList
+        self.calculateCitiesPathValue()
         
     def calculateCitiesPathValue(self):
         oldCity = None
