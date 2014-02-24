@@ -287,7 +287,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         ga_selection(population)
         
         # Crossing population
-        ga_crossover_all(population)
+        ga_crossoverAll(population)
         
         # Mutation of the population
         ga_mutation_all(population)
@@ -366,7 +366,7 @@ def calculatePopulationSize(citiesCount):
 
 # Selection of the genetic algorithm
 def ga_selection(population):
-    pass
+    return population[:2500]
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -375,7 +375,7 @@ def ga_selection(population):
 #------------------------------------------------------------------------------#
 
 # Crossover function
-def ga_crossover_all(population):
+def ga_crossoverAll(population):
     new = []
     
     for v1 in range(len(population)):
