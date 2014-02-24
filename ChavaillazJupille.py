@@ -82,17 +82,21 @@ class GuiManager(object):
     @staticmethod
     def drawSolution(bestPopulation):
         if GuiManager.guiOpened:
-            screenSurface.fill(0)
+            GuiManager.screenSurface.fill(0)
             
             oldCity = None
             
             for city in bestPopulation.getCitiesPathList():
                 if oldCity != None:
-                    pygame.draw.line(screenSurface, colorWhite, oldCity, city)
+                    pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), city.getLocation())
                 
                 oldCity = city
             
-            pygame.draw.line(screenSurface, colorWhite, oldCity, bestPopulation.getCitiesPathList()[0])
+            pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), bestPopulation.getCitiesPathList()[0].getLocation())
+
+            for city in bestPopulation.getCitiesPathList():
+                pygame.draw.circle(GuiManager.screenSurface, GuiManager.colorRed, city.getLocation(), GuiManager.cityRadius)
+                
             pygame.display.flip()
 
 # Class representing cities with a name and a location (x, y)
@@ -174,7 +178,7 @@ class IndividualSolution(object):
 #                                                                              #
 #------------------------------------------------------------------------------#
 
-def static_var(varname, value):
+def staticvar(varname, value):
     def decorate(func):
         setattr(func, varname, value)
         return func
@@ -284,20 +288,21 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     while True:
         
         # Selection in population
-        ga_selection(population)
+        population = ga_selection(population)
         
         # Crossing population
         ga_crossoverAll(population)
         
         # Mutation of the population
-        ga_mutation_all(population)
+        ga_mutationAll(population)
         
         # Calculate distance
         populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getCitiesPathValue())
         
         # Best solution 
         bestSolution = populationSorted[0]
-        print("Best Solution, distance:" + bestPopulation.getCitiesPathList())
+        print("Best Solution, distance:", bestSolution.getCitiesPathValue())
+        
         # Draw solution
         GuiManager.drawSolution(bestSolution)
         
@@ -305,6 +310,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         if maxtime > 0:
             if time.time() - startTimestamp > maxtime:
                 break
+        
         # Break if result is stagnating
         else:
             if ga_resultStagnation(bestSolution):
@@ -366,7 +372,18 @@ def calculatePopulationSize(citiesCount):
 
 # Selection of the genetic algorithm
 def ga_selection(population):
-    return population[:2500]
+
+    population.sort(key = lambda solution: solution.getCitiesPathValue())
+    newPopulation = []
+    populationHalfLength = int(len(population) / 2)
+    newPopulationIndex = 0
+
+    for i in range(populationHalfLength):
+        newPopulation.append(population[newPopulationIndex])
+
+        newPopulationIndex += random.randint(1, 2)
+
+    return newPopulation
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -376,13 +393,13 @@ def ga_selection(population):
 
 # Crossover function
 def ga_crossoverAll(population):
-    new = []
     
-    for v1 in range(len(population)):
-        for v2 in range(v1, len(population)):
-            new.extend(ga_crossover(population[v1], population[v2]))
-    
-    population.extend(new)
+    i = 0
+    initialPopulationLength = len(population)
+
+    while i < initialPopulationLength:
+        population.extend(ga_crossover(population[i], population[i + 1]))
+        i += 2
 
 def ga_crossover(solution1, solution2):
     new1 = []
@@ -390,7 +407,7 @@ def ga_crossover(solution1, solution2):
     cities1 = solution1.getCitiesPathList()
     cities2 = solution2.getCitiesPathList()
     
-    #len(cities1) == len(cities2)
+    # Axiom: len(cities1) == len(cities2)
     length = len(cities1)
     
     # indexPart1 = 0
@@ -427,28 +444,23 @@ def ga_crossover(solution1, solution2):
 #                                                                              #
 #------------------------------------------------------------------------------#
 
-def ga_mutation_all(population):
+def ga_mutationAll(population):
     mutationPourcent = 0.01 # 0.1%
     
     sizePopulation = len(population)
     
     for i in range(round(sizePopulation * mutationPourcent)):
         randomIndex = random.randint(0, sizePopulation - 1)
-        population.extend(ga_mutation(population[randomIndex]))
+        ga_mutation(population[randomIndex])
         
 def ga_mutation(solution):
-    cities = solution.getCitiesPathList()[:]
+    cities = solution.getCitiesPathList()
     
     maxIndex = len(cities) - 1
     randomIndex1 = random.randint(0, maxIndex)
     randomIndex2 = random.randint(0, maxIndex)
     
     cities[randomIndex1], cities[randomIndex2] = cities[randomIndex2], cities[randomIndex1]
-    
-    newSolution = IndividualSolution()
-    newSolution.setCitiesPathList(cities)
-    
-    return newSolution
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -457,14 +469,24 @@ def ga_mutation(solution):
 #------------------------------------------------------------------------------#
 
 # Checks if the result varies from a delta
-@static_var("distance", 0)
+@staticvar("counter", 30)
+@staticvar("oldDistance", -1)
 def ga_resultStagnation(bestSolution):
-    deltaAccept = 0.01 # 0.1%
-    deltaCalculate = ga_resultStagnation.distance / bestSolution.getCitiesPathValue()
-    if deltaCalculate  > 1:
-        deltaCalculate -= 1
-    distance = bestSolution.getCitiesPathValue()
-    return (deltaCalculate <= deltaAccept)
+    test = False
+    
+    if ga_resultStagnation.oldDistance == -1:
+        ga_resultStagnation.oldDistance = bestSolution.getCitiesPathValue()
+    else:
+        if abs(ga_resultStagnation.oldDistance - bestSolution.getCitiesPathValue()) < 0.001:
+            ga_resultStagnation.counter -= 1
+        else:
+            ga_resultStagnation.counter = 30
+
+        test = (ga_resultStagnation.counter == 0)
+
+    ga_resultStagnation.oldDistance = bestSolution.getCitiesPathValue()
+
+    return test
 
 #------------------------------------------------------------------------------#
 #                                                                              #
