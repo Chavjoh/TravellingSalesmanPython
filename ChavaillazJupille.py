@@ -99,49 +99,6 @@ class GuiManager(object):
                 
             pygame.display.flip()
 
-# Class representing cities with a name and a location (x, y)
-class City(object):
-
-    _id = 0
-
-    def __init__(self, name, x, y):
-
-        if not isinstance(name, str):
-            raise TypeError('City __init__: argument 1 must be a string.')
-        
-        if not isinstance(x, int):
-            raise TypeError('City __init__: argument 2 must be an integer.')
-
-        if not isinstance(y, int):
-            raise TypeError('City __init__: argument 3 must be an intenger.')
-
-        self._id = City._id
-        City._id += 1
-        
-        self._name = name
-        self._x = x
-        self._y = y
-
-    def getId(self):
-        return self._id
-    
-    def getName(self):
-        return self._name
-
-    def getX(self):
-        return self._x
-
-    def getY(self):
-        return self._y
-
-    def getLocation(self):
-        return (self.getX(), self.getY())
-        
-    def getDistance(self, other):
-        deltaX = self.getX() - other.getX()
-        deltaY = self.getY() - other.getY()
-        return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
-
 # Class representing individual solution of the travelling salesman problem
 class Solution(object):
 
@@ -177,6 +134,70 @@ class Solution(object):
 
     def setCitiesPathDistance(self, citiesPathDistance):
         self._citiesPathDistance = citiesPathDistance
+
+class TravelManager(object):
+
+    _cities = []
+
+    @staticmethod
+    def getCities():
+        return TravelManager._cities
+
+    @staticmethod
+    def setCities(cities):
+        TravelManager._cities = cities
+
+    @staticmethod
+    def calculcateTravelDistance(identifiers):
+        identifiersLength = len(identifiers)
+
+        if identifiersLength < 2:
+            return 0
+        
+        identifiersIndex = 1
+        travelDistance = 0
+
+        while identifiersIndex < identifiersLength:
+            travelDistance += TravelManager._cities[identifiers[identifiersIndex - 1]].getDistance(TravelManager._cities[identifiers[identifiersIndex]])
+
+        travelDistance += TravelManager._cities[identifiers[0]].getDistance(TravelManager._cities[identifiers[-1]])
+
+        return travelDistance
+
+# Class representing cities with a name and a location (x, y)
+class City(object):
+
+    def __init__(self, name, x, y):
+
+        if not isinstance(name, str):
+            raise TypeError('City __init__: argument 1 must be a string.')
+        
+        if not isinstance(x, int):
+            raise TypeError('City __init__: argument 2 must be an integer.')
+
+        if not isinstance(y, int):
+            raise TypeError('City __init__: argument 3 must be an intenger.')
+        
+        self._name = name
+        self._x = x
+        self._y = y
+    
+    def getName(self):
+        return self._name
+
+    def getX(self):
+        return self._x
+
+    def getY(self):
+        return self._y
+
+    def getLocation(self):
+        return (self.getX(), self.getY())
+        
+    def getDistance(self, other):
+        deltaX = self.getX() - other.getX()
+        deltaY = self.getY() - other.getY()
+        return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -273,14 +294,13 @@ def getCitiesByGui():
 
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
-    cities = None
     bestSolution = None
     
     if file != None:
-        cities = getCitiesByFile(file)
+        TravelManager.setCities(getCitiesByFile(file))
     else:
         GuiManager.openGui()
-        cities = getCitiesByGui()
+        TravelManager.setCities(getCitiesByGui())
     
     if gui:
         GuiManager.openGui()
@@ -290,7 +310,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     startTimestamp = time.time()
     
     # Create initial population and return list individual solution
-    population = ga_initialization(cities)
+    population = ga_initialization(TravelManager.getCities())
     
     while True:
         
