@@ -1,26 +1,25 @@
 # coding: latin-1
 
-''' 
-Module permettant de tester systématiquement une série de solveurs 
+''' Module permettant de tester systématiquement une série de solveurs 
 pour le problème du voyageur de commerce.
 
 Permet de lancer automatiquement une série de solveurs sur une série de problèmes
 et génère une grille de résultats au format CSV.
 
 v0.2, Matthieu Amiguet, HE-Arc
-v0.3, Hatem Ghorbel, HE-Arc
+v0.3, hatem Ghorbel, HE-Arc
 '''
 
 # PARAMETRES
-# ==========
-# Modifier cette partie pour l'adapter à vos besoins
+# =========
+# modifier cette partie pour l'adapter à vos besoins
 
 # Le nom des modules à tester
 # Ces modules doivent être dans le PYTHONPATH; p.ex. dans le répertoire courant
 
 modules = (
-    "MAA09",
-    # Éventuellement d'autres modules pour comparer plusieurs versions...
+	"HGH14",
+	# Éventuellement d'autres modules pour comparer plusieurs versions...
 )
 
 # Liste des tests à effectuer 
@@ -43,13 +42,13 @@ tolerance = 0.05
 # Fichier dans lequel écrire les résultats
 import sys
 outfile = sys.stdout
-# Ou :
-# outfile = open('results.csv', 'w')
+# ou :
+#outfile = open('results.csv', 'w')
 
-# Affichage à la console d'informations d'avancement?
+# affichage à la console d'informations d'avancement?
 verbose = False
 
-# Est-ce qu'on veut un affichage graphique?
+# est-ce qu'on veut un affichage graphique?
 gui = False
 
 # PROGRAMME
@@ -60,22 +59,25 @@ import os
 from time import time
 from math import hypot
 
-def dist(x1,y1,x2,y2):
+def dist(c1,c2):
+    x1,y1=c1[0],c1[1]
+    x2,y2=c2[0],c2[1]
     return hypot(x2 -x1,y2-y1)
 
 def validate(filename, length, path, duration, maxtime):
     '''Validation de la solution
-    Retourne une chaîne vide si tout est OK ou un message d'erreur sinon
+    
+    retourne une chaîne vide si tout est OK ou un message d'erreur sinon
     '''
     error = ""
     
     if duration>maxtime * (1+tolerance):
         error += "Timeout (%.2f) " % (duration-maxtime)
     try:
-        cities = dict([(name, (int(x),int(y))) for name,x,y in [l.split() for l in file(filename)]])
+        cities = dict([(name, (int(x),int(y))) for name,x,y in [l.split() for l in open(filename)]])
     except:
         return "(Validation failed...)"
-    tovisit = cities.keys()
+    tovisit = list(cities.keys())
     
     try:
         totaldist = 0
@@ -97,8 +99,9 @@ def validate(filename, length, path, duration, maxtime):
     
     return error
 
-if __name__ == '__main__':
 
+
+if __name__ == '__main__':
     # Récupération des différentes implémentations
     # On met les différentes fonctions ga_solve() dans un dictionnaire indexé par le nom du module correpsondant
     # On en profite pour écrire la ligne d'en-tête du fichier de sortie
@@ -120,13 +123,10 @@ if __name__ == '__main__':
     for (filename, maxtime) in tests:
         if verbose: 
             print ("--> %s, %d" % (filename, maxtime))
-        
-        # Normalisation du nom de fichier (pour l'aspect multi-plateforme)
+        # normalisation du nom de fichier (pour l'aspect multi-plateforme)
         filename = os.path.normcase(os.path.normpath(filename))
-        
         # Écriture de l'en-tête de ligne
         outfile.write("%s (%ds);" % (filename, maxtime))
-        
         # Appel des solveurs proprement dits, vérification et écriture des résultats
         for m in modules:
             if verbose: 
@@ -146,5 +146,4 @@ if __name__ == '__main__':
                 else:
                     outfile.write("%s;" % error)
             outfile.flush()
-        
         outfile.write('\n')
