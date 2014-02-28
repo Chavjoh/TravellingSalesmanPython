@@ -86,83 +86,18 @@ class GuiManager(object):
             
             oldCity = None
             
-            for city in bestPopulation.getCitiesPathList():
+            for city in bestPopulation.getTravel():
                 if oldCity != None:
                     pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), city.getLocation())
                 
                 oldCity = city
             
-            pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), bestPopulation.getCitiesPathList()[0].getLocation())
+            pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), bestPopulation.getTravel()[0].getLocation())
 
-            for city in bestPopulation.getCitiesPathList():
+            for city in bestPopulation.getTravel():
                 pygame.draw.circle(GuiManager.screenSurface, GuiManager.colorRed, city.getLocation(), GuiManager.cityRadius)
                 
             pygame.display.flip()
-
-# Class representing individual solution of the travelling salesman problem
-class Solution(object):
-
-    def __init__(self):
-        self._citiesPathList = []
-        self._citiesPathDistance = 0
-
-    def addCityToPath(self, city):
-        self._citiesPathList.append(city)
-
-    def getCitiesPathList(self):
-        return self._citiesPathList
-
-    def setCitiesPathList(self, citiesPathList):
-        self._citiesPathList = citiesPathList
-        self.calculateCitiesPathValue()
-        
-    def calculateCitiesPathValue(self):
-        oldCity = None
-
-        self._citiesPathDistance = 0
-        
-        for city in self._citiesPathList:
-            if oldCity != None:                    
-                self._citiesPathDistance += oldCity.getDistance(city)
-            
-            oldCity = city;
-                    
-        self._citiesPathDistance += oldCity.getDistance(self._citiesPathList[0])
-
-    def getCitiesPathDistance(self):
-        return self._citiesPathDistance
-
-    def setCitiesPathDistance(self, citiesPathDistance):
-        self._citiesPathDistance = citiesPathDistance
-
-class TravelManager(object):
-
-    _cities = []
-
-    @staticmethod
-    def getCities():
-        return TravelManager._cities
-
-    @staticmethod
-    def setCities(cities):
-        TravelManager._cities = cities
-
-    @staticmethod
-    def calculcateTravelDistance(identifiers):
-        identifiersLength = len(identifiers)
-
-        if identifiersLength < 2:
-            return 0
-        
-        identifiersIndex = 1
-        travelDistance = 0
-
-        while identifiersIndex < identifiersLength:
-            travelDistance += TravelManager._cities[identifiers[identifiersIndex - 1]].getDistance(TravelManager._cities[identifiers[identifiersIndex]])
-
-        travelDistance += TravelManager._cities[identifiers[0]].getDistance(TravelManager._cities[identifiers[-1]])
-
-        return travelDistance
 
 # Class representing cities with a name and a location (x, y)
 class City(object):
@@ -198,6 +133,32 @@ class City(object):
         deltaX = self.getX() - other.getX()
         deltaY = self.getY() - other.getY()
         return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
+
+# Class representing individual solution of the travelling salesman problem
+class Solution(object):
+
+    def __init__(self):
+        self._travel = []
+        self._travelDistance = 0
+
+    def _calculateTravelDistance(self):
+        self._travelDistance = 0
+        
+        previousCity = self._travel[-1]
+        
+        for city in self._travel:                
+            self._travelDistance += previousCity.getDistance(city)
+            previousCity = city;
+
+    def getTravel(self):
+        return self._travel
+
+    def setTravel(self, travel):
+        self._travel = travel
+        self._calculateTravelDistance()
+
+    def getTravelDistance(self):
+        return self._travelDistance
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -294,13 +255,14 @@ def getCitiesByGui():
 
 # Solve the travelling salesman problem with a genetic algorithm
 def ga_solve(file = None, gui = True, maxtime = 0):
+    cities = None
     bestSolution = None
     
     if file != None:
-        TravelManager.setCities(getCitiesByFile(file))
+        cities = getCitiesByFile(file)
     else:
         GuiManager.openGui()
-        TravelManager.setCities(getCitiesByGui())
+        cities = getCitiesByGui()
     
     if gui:
         GuiManager.openGui()
@@ -310,7 +272,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     startTimestamp = time.time()
     
     # Create initial population and return list individual solution
-    population = ga_initialization(TravelManager.getCities())
+    population = ga_initialization(cities)
     
     while True:
         
@@ -324,11 +286,11 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         ga_mutationAll(population)
         
         # Calculate distance
-        #populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getCitiesPathDistance())
+        populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getTravelDistance())
         
         # Best solution 
-        #bestSolution = populationSorted[0]
-        #print("Best solution distance = ", bestSolution.getCitiesPathDistance())
+        bestSolution = populationSorted[0]
+        print("Best solution distance = ", bestSolution.getTravelDistance())
         
         # Draw solution
         GuiManager.drawSolution(bestSolution)
@@ -340,11 +302,11 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         
         # Break if result is stagnating
         else:
-            if False:#ga_resultStagnation(bestSolution):
+            if ga_resultStagnation(bestSolution):
                 break
     
     # Calculate city name list
-    cityNameList = [x.getName() for x in bestSolution.getCitiesPathList()]
+    cityNameList = [x.getName() for x in bestSolution.getTravel()]
     
     # Return expected result
     return bestSolution, cityNameList
@@ -357,17 +319,41 @@ def ga_solve(file = None, gui = True, maxtime = 0):
 
 # Initialization of the genetic algorithm
 def ga_initialization(cities):
-    citiesLength = len(cities)
     population = []
+    populationSize = calculatePopulationSize(len(cities))
+    citiesSize = len(cities)
 
-    basicRange = range(citiesLength)
+    # Greedy algorithm for the first solution
+    citiesCopy = []
+    cityIndex = 0
+    
+    lastCity = cities.pop(cityIndex)
+    citiesCopy.append(lastCity)
+        
+    while len(cities) > 0:
+        minDistance = -1
 
-    # Generate enough solutions
-    for i in range(calculatePopulationSize(citiesLength)):
+        for i, city in enumerate(cities):
+            currentDistance = lastCity.getDistance(city)
+                
+            if minDistance == -1 or minDistance > currentDistance:
+                cityIndex = i
+                minDistance = currentDistance
 
-        # Random algorithm
-        solution = list(basicRange)
-        random.shuffle(solution)
+        lastCity = cities.pop(cityIndex)
+        citiesCopy.append(lastCity)
+
+    solution = Solution()
+    solution.setTravel(citiesCopy)
+
+    population.append(solution)
+
+    # Generate enough solutions, based on the first solution
+    for i in range(1, populationSize):
+        solution = Solution()
+        solution.setTravel(list(population[0].getTravel()))
+
+        ga_mutation(solution)
 
         population.append(solution)
 
@@ -384,18 +370,43 @@ def calculatePopulationSize(citiesCount):
 
 # Selection of the genetic algorithm
 def ga_selection(population):
-    populationHalfLength = int(len(population) / 2)
+    population.sort(key = lambda solution: solution.getTravelDistance())
     
-    population.sort(key = lambda solution: TravelManager.calculateTravelDistance(solution))
+    populationLength = len(population)
+    halfPopulationLength = int(populationLength / 2)
 
-    populationIndex1 = 0
-    populationIndex2 = 0
+    maxRandomValue = 0
+    cumulativeRankingValuesList = []
 
-    while populationIndex1 < 2500:
-        population[populationIndex1] = population[populationIndex2]
+    for i in range(populationLength):
+        maxRandomValue += i
+        cumulativeRankingValuesList.append(maxRandomValue)
 
-        populationIndex1 += 1
-        populationIndex2 += random.randint(1, 2)
+    randomValuesFactorsList = []
+
+    for i in range(halfPopulationLength):
+        randomValuesFactorsList.append(random.uniform(0, 1))
+
+    randomValuesFactorsList.sort()
+
+    currentIndex = 0
+    selectedSolutionsIndexesList = []
+
+    for randomValueFactor in randomValuesFactorsList:
+        randomValue = maxRandomValue * randomValueFactor
+        
+        while randomValue < cumulativeRankingValuesList[currentIndex]:
+            currentIndex += 1
+
+        selectedSolutionsIndexesList.append(currentIndex)
+
+        maxRandomValue -= cumulativeRankingValuesList[currentIndex]
+        cumulativeRankingValuesList[currentIndex] = 0
+
+    population.sort(key = lambda solution: solution.getTravelDistance())
+
+    for i, selectedIndex in enumerate(selectedSolutionsIndexesList):
+        population[i], population[currentIndex] = population[currentIndex], population[i]
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -417,8 +428,8 @@ def ga_crossoverAll(population):
 def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Index):
     new1 = []
     new2 = []
-    cities1 = population[parent1Index]
-    cities2 = population[parent2Index]
+    cities1 = population[parent1Index].getTravel()
+    cities2 = population[parent2Index].getTravel()
     
     # Axiom: len(cities1) == len(cities2)
     length = len(cities1)
@@ -443,8 +454,8 @@ def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Inde
     shift(new1, length - indexPart3)
     shift(new2, length - indexPart3)
     
-    population[child1Index] = new1
-    population[child2Index] = new2
+    population[child1Index].setTravel(new1)
+    population[child2Index].setTravel(new2)
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -461,12 +472,16 @@ def ga_mutationAll(population):
         randomIndex = random.randint(0, sizePopulation - 1)
         ga_mutation(population[randomIndex])
         
-def ga_mutation(solution):    
-    maxIndex = len(solution) - 1
+def ga_mutation(solution):
+    cities = solution.getTravel()
+    
+    maxIndex = len(cities) - 1
     randomIndex1 = random.randint(0, maxIndex)
     randomIndex2 = random.randint(0, maxIndex)
     
-    solution[randomIndex1], solution[randomIndex2] = solution[randomIndex2], solution[randomIndex1]
+    cities[randomIndex1], cities[randomIndex2] = cities[randomIndex2], cities[randomIndex1]
+
+    solution.setTravel(cities)
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -479,20 +494,18 @@ def ga_mutation(solution):
 @staticvar("oldDistance", -1)
 def ga_resultStagnation(bestSolution):
     test = False
-
-    travelDistance = TravelManager.calculateTravelDistance(bestSolution)
     
     if ga_resultStagnation.oldDistance == -1:
-        ga_resultStagnation.oldDistance = travelDistance
+        ga_resultStagnation.oldDistance = bestSolution.getTravelDistance()
     else:
-        if abs(ga_resultStagnation.oldDistance - travelDistance) < 0.001:
+        if abs(ga_resultStagnation.oldDistance - bestSolution.getTravelDistance()) < 0.001:
             ga_resultStagnation.counter -= 1
         else:
             ga_resultStagnation.counter = 30
 
         test = (ga_resultStagnation.counter == 0)
 
-    ga_resultStagnation.oldDistance = travelDistance
+    ga_resultStagnation.oldDistance = bestSolution.getTravelDistance()
 
     return test
 
