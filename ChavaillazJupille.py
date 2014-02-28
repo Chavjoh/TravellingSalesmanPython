@@ -370,7 +370,7 @@ def ga_initialization(cities):
     return population
 
 def calculatePopulationSize(citiesCount):
-    return 5000
+    return int(math.fabs(math.log1p(citiesCount) * 1000))
 
 #------------------------------------------------------------------------------#
 #                                                                              #
