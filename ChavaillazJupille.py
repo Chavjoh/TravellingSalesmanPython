@@ -310,7 +310,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     cityNameList = [x.getName() for x in bestSolution.getTravel()]
     
     # Return expected result
-    return bestSolution.getCitiesPathDistance(), cityNameList
+    return bestSolution.getTravelDistance(), cityNameList
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -361,7 +361,12 @@ def ga_initialization(cities):
     return population
 
 def calculatePopulationSize(citiesCount):
-    return int(math.fabs(math.log1p(citiesCount) * 1000))
+    populationSize = int(math.fabs(math.log1p(citiesCount) * 1000))
+
+    while populationSize % 4 != 0:
+        populationSize += 1
+        
+    return populationSize
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -481,8 +486,6 @@ def ga_mutation(solution):
     randomIndex2 = random.randint(0, maxIndex)
     
     cities[randomIndex1], cities[randomIndex2] = cities[randomIndex2], cities[randomIndex1]
-    
-    solution.calculateCitiesPathValue()
 
     solution.setTravel(cities)
 
