@@ -25,6 +25,7 @@ import time
 import math
 import random
 
+from math import hypot
 from collections import deque
 from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 
@@ -130,9 +131,9 @@ class City(object):
         return (self.getX(), self.getY())
         
     def getDistance(self, other):
-        deltaX = self.getX() - other.getX()
-        deltaY = self.getY() - other.getY()
-        return math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
+        x1,y1 = self.getX(), self.getY()
+        x2,y2 = other.getX(), other.getY()
+        return hypot(x2-x1, y2-y1)
 
 # Class representing individual solution of the travelling salesman problem
 class Solution(object):
@@ -152,17 +153,13 @@ class Solution(object):
         self.calculateCitiesPathValue()
         
     def calculateCitiesPathValue(self):
-        oldCity = None
+        oldCity = self._citiesPathList[-1]
 
         self._citiesPathDistance = 0
         
-        for city in self._citiesPathList:
-            if oldCity != None:                    
-                self._citiesPathDistance += oldCity.getDistance(city)
-            
+        for city in self._citiesPathList:                
+            self._citiesPathDistance += oldCity.getDistance(city)
             oldCity = city;
-                    
-        self._citiesPathDistance += oldCity.getDistance(self._citiesPathList[0])
 
     def getCitiesPathDistance(self):
         return self._citiesPathDistance
@@ -299,7 +296,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         
         # Best solution 
         bestSolution = populationSorted[0]
-        print("Best solution distance = ", bestSolution.getCitiesPathDistance())
+        #print("Best solution distance = ", bestSolution.getCitiesPathDistance())
         
         # Draw solution
         GuiManager.drawSolution(bestSolution)
@@ -318,7 +315,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
     cityNameList = [x.getName() for x in bestSolution.getCitiesPathList()]
     
     # Return expected result
-    return bestSolution, cityNameList
+    return bestSolution.getCitiesPathDistance(), cityNameList
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -483,6 +480,8 @@ def ga_mutation(solution):
     randomIndex2 = random.randint(0, maxIndex)
     
     cities[randomIndex1], cities[randomIndex2] = cities[randomIndex2], cities[randomIndex1]
+    
+    solution.calculateCitiesPathValue()
 
 #------------------------------------------------------------------------------#
 #                                                                              #
