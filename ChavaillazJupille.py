@@ -87,23 +87,21 @@ class GuiManager(object):
             
             oldCity = None
             
-            for city in bestPopulation.getCitiesPathList():
+            for city in bestPopulation.getTravel():
                 if oldCity != None:
                     pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), city.getLocation())
                 
                 oldCity = city
             
-            pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), bestPopulation.getCitiesPathList()[0].getLocation())
+            pygame.draw.line(GuiManager.screenSurface, GuiManager.colorWhite, oldCity.getLocation(), bestPopulation.getTravel()[0].getLocation())
 
-            for city in bestPopulation.getCitiesPathList():
+            for city in bestPopulation.getTravel():
                 pygame.draw.circle(GuiManager.screenSurface, GuiManager.colorRed, city.getLocation(), GuiManager.cityRadius)
                 
             pygame.display.flip()
 
 # Class representing cities with a name and a location (x, y)
 class City(object):
-
-    _id = 0
 
     def __init__(self, name, x, y):
 
@@ -115,16 +113,10 @@ class City(object):
 
         if not isinstance(y, int):
             raise TypeError('City __init__: argument 3 must be an intenger.')
-
-        self._id = City._id
-        City._id += 1
         
         self._name = name
         self._x = x
         self._y = y
-
-    def getId(self):
-        return self._id
     
     def getName(self):
         return self._name
@@ -147,33 +139,27 @@ class City(object):
 class Solution(object):
 
     def __init__(self):
-        self._citiesPathList = []
-        self._citiesPathDistance = 0
+        self._travel = []
+        self._travelDistance = 0
 
-    def addCityToPath(self, city):
-        self._citiesPathList.append(city)
-
-    def getCitiesPathList(self):
-        return self._citiesPathList
-
-    def setCitiesPathList(self, citiesPathList):
-        self._citiesPathList = citiesPathList
-        self.calculateCitiesPathValue()
+    def _calculateTravelDistance(self):
+        self._travelDistance = 0
         
-    def calculateCitiesPathValue(self):
-        oldCity = self._citiesPathList[-1]
-
-        self._citiesPathDistance = 0
+        previousCity = self._travel[-1]
         
-        for city in self._citiesPathList:                
-            self._citiesPathDistance += oldCity.getDistance(city)
-            oldCity = city;
+        for city in self._travel:                
+            self._travelDistance += previousCity.getDistance(city)
+            previousCity = city;
 
-    def getCitiesPathDistance(self):
-        return self._citiesPathDistance
+    def getTravel(self):
+        return self._travel
 
-    def setCitiesPathDistance(self, citiesPathDistance):
-        self._citiesPathDistance = citiesPathDistance
+    def setTravel(self, travel):
+        self._travel = travel
+        self._calculateTravelDistance()
+
+    def getTravelDistance(self):
+        return self._travelDistance
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -301,11 +287,11 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         ga_mutationAll(population)
         
         # Calculate distance
-        populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getCitiesPathDistance())
+        populationSorted = sorted(population, key=lambda individualSolution: individualSolution.getTravelDistance())
         
         # Best solution 
         bestSolution = populationSorted[0]
-        #print("Best solution distance = ", bestSolution.getCitiesPathDistance())
+        print("Best solution distance = ", bestSolution.getTravelDistance())
         
         # Draw solution
         GuiManager.drawSolution(bestSolution)
@@ -321,7 +307,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
                 break
     
     # Calculate city name list
-    cityNameList = [x.getName() for x in bestSolution.getCitiesPathList()]
+    cityNameList = [x.getName() for x in bestSolution.getTravel()]
     
     # Return expected result
     return bestSolution.getCitiesPathDistance(), cityNameList
@@ -334,38 +320,43 @@ def ga_solve(file = None, gui = True, maxtime = 0):
 
 # Initialization of the genetic algorithm
 def ga_initialization(cities):
-    
     population = []
+    populationSize = calculatePopulationSize(len(cities))
+    citiesSize = len(cities)
+
+    # Greedy algorithm for the first solution
+    citiesCopy = []
+    cityIndex = 0
     
-    citiesLength = len(cities)
-
-    # Generate enough population, based on cities count
-    for i in range(calculatePopulationSize(citiesLength)):
-
-        # Greedy algorithm
-        citiesCopy = list(cities)
-        cityIndex = random.randrange(0, len(citiesCopy))
-
-        individualSolution = Solution()
+    lastCity = cities.pop(cityIndex)
+    citiesCopy.append(lastCity)
         
-        lastCity = citiesCopy.pop(cityIndex)
-        individualSolution.addCityToPath(lastCity)
-        
-        while len(citiesCopy) > 0:
-            minDistance = -1
-            
-            for i, city in enumerate(citiesCopy):
-                currentDistance = lastCity.getDistance(city)
+    while len(cities) > 0:
+        minDistance = -1
+
+        for i, city in enumerate(cities):
+            currentDistance = lastCity.getDistance(city)
                 
-                if minDistance == -1 or minDistance > currentDistance:
-                    cityIndex = i
-                    minDistance = currentDistance
+            if minDistance == -1 or minDistance > currentDistance:
+                cityIndex = i
+                minDistance = currentDistance
 
-            lastCity = citiesCopy.pop(cityIndex)
-            individualSolution.addCityToPath(lastCity)
+        lastCity = cities.pop(cityIndex)
+        citiesCopy.append(lastCity)
 
-        individualSolution.calculateCitiesPathValue()
-        population.append(individualSolution)
+    solution = Solution()
+    solution.setTravel(citiesCopy)
+
+    population.append(solution)
+
+    # Generate enough solutions, based on the first solution
+    for i in range(1, populationSize):
+        solution = Solution()
+        solution.setTravel(list(population[0].getTravel()))
+
+        ga_mutation(solution)
+
+        population.append(solution)
 
     return population
 
@@ -380,6 +371,7 @@ def calculatePopulationSize(citiesCount):
 
 # Selection of the genetic algorithm
 def ga_selection(population):
+    population.sort(key = lambda solution: solution.getTravelDistance())
     
     populationLength = len(population)
     halfPopulationLength = int(populationLength / 2)
@@ -412,7 +404,7 @@ def ga_selection(population):
         maxRandomValue -= cumulativeRankingValuesList[currentIndex]
         cumulativeRankingValuesList[currentIndex] = 0
 
-    population.sort(key = lambda solution: solution.getCitiesPathDistance())
+    population.sort(key = lambda solution: solution.getTravelDistance())
 
     for i, selectedIndex in enumerate(selectedSolutionsIndexesList):
         population[i], population[currentIndex] = population[currentIndex], population[i]
@@ -437,8 +429,8 @@ def ga_crossoverAll(population):
 def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Index):
     new1 = []
     new2 = []
-    cities1 = population[parent1Index].getCitiesPathList()
-    cities2 = population[parent2Index].getCitiesPathList()
+    cities1 = population[parent1Index].getTravel()
+    cities2 = population[parent2Index].getTravel()
     
     # Axiom: len(cities1) == len(cities2)
     length = len(cities1)
@@ -463,8 +455,8 @@ def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Inde
     shift(new1, length - indexPart3)
     shift(new2, length - indexPart3)
     
-    population[child1Index].setCitiesPathList(new1)
-    population[child2Index].setCitiesPathList(new2)
+    population[child1Index].setTravel(new1)
+    population[child2Index].setTravel(new2)
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -482,7 +474,7 @@ def ga_mutationAll(population):
         ga_mutation(population[randomIndex])
         
 def ga_mutation(solution):
-    cities = solution.getCitiesPathList()
+    cities = solution.getTravel()
     
     maxIndex = len(cities) - 1
     randomIndex1 = random.randint(0, maxIndex)
@@ -491,6 +483,8 @@ def ga_mutation(solution):
     cities[randomIndex1], cities[randomIndex2] = cities[randomIndex2], cities[randomIndex1]
     
     solution.calculateCitiesPathValue()
+
+    solution.setTravel(cities)
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -505,16 +499,16 @@ def ga_resultStagnation(bestSolution):
     test = False
     
     if ga_resultStagnation.oldDistance == -1:
-        ga_resultStagnation.oldDistance = bestSolution.getCitiesPathDistance()
+        ga_resultStagnation.oldDistance = bestSolution.getTravelDistance()
     else:
-        if abs(ga_resultStagnation.oldDistance - bestSolution.getCitiesPathDistance()) < 0.001:
+        if abs(ga_resultStagnation.oldDistance - bestSolution.getTravelDistance()) < 0.001:
             ga_resultStagnation.counter -= 1
         else:
             ga_resultStagnation.counter = 30
 
         test = (ga_resultStagnation.counter == 0)
 
-    ga_resultStagnation.oldDistance = bestSolution.getCitiesPathDistance()
+    ga_resultStagnation.oldDistance = bestSolution.getTravelDistance()
 
     return test
 
