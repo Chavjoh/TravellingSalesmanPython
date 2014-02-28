@@ -412,7 +412,8 @@ def ga_selection(population):
     population.sort(key = lambda solution: solution.getTravelDistance())
 
     for i, selectedIndex in enumerate(selectedSolutionsIndexesList):
-        population[i], population[currentIndex] = population[currentIndex], population[i]
+        if selectedIndex != 0:
+            population[i], population[selectedIndex] = population[selectedIndex], population[i]
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -470,7 +471,7 @@ def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Inde
 #------------------------------------------------------------------------------#
 
 def ga_mutationAll(population):
-    mutationPourcent = 0.1 # 10%
+    mutationPourcent = 0.5 # 50%
     
     sizePopulation = len(population)
     
