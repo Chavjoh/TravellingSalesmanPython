@@ -103,21 +103,29 @@ class GuiManager(object):
 # Class representing cities with a name and a location (x, y)
 class City(object):
 
+    _id = 0
+
     def __init__(self, name, x, y):
 
         if not isinstance(name, str):
-            raise TypeError('City __init__: argument 1 must be a string')
+            raise TypeError('City __init__: argument 1 must be a string.')
         
         if not isinstance(x, int):
-            raise TypeError('City __init__: argument 2 must be an integer')
+            raise TypeError('City __init__: argument 2 must be an integer.')
 
         if not isinstance(y, int):
-            raise TypeError('City __init__: argument 3 must be an intenger')
+            raise TypeError('City __init__: argument 3 must be an intenger.')
 
+        self._id = City._id
+        City._id += 1
+        
         self._name = name
         self._x = x
         self._y = y
 
+    def getId(self):
+        return self._id
+    
     def getName(self):
         return self._name
 
@@ -226,6 +234,7 @@ def getCitiesByGui():
 
             # Red cross / Alt+F4
             if event.type == QUIT:
+                GuiManager.closeGui()
                 sys.exit(0)
 
             # Key down events: only look for return button
@@ -464,7 +473,7 @@ def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Inde
 #------------------------------------------------------------------------------#
 
 def ga_mutationAll(population):
-    mutationPourcent = 0.01 # 0.1%
+    mutationPourcent = 0.1 # 10%
     
     sizePopulation = len(population)
     
