@@ -35,9 +35,15 @@ from pygame.locals import KEYDOWN, QUIT, MOUSEBUTTONDOWN, K_RETURN
 #                                                                              #
 #------------------------------------------------------------------------------#
 
-# Use to manage GUI of pygame
+# Uses to manage GUI of pygame
 class GuiManager(object):
+    """Manage the GUI provided by the Pygame module.
 
+    The main purpose of this manager is to avoid multiple initialization of the
+    Pygame display by calling multiple times the pygame.init() method. We check
+    first if the GUI is already opened.
+    """
+    
     cityRadius = 3
 
     colorBlack = [0, 0, 0]
@@ -102,6 +108,11 @@ class GuiManager(object):
 
 # Class representing cities with a name and a location (x, y)
 class City(object):
+    """Represents a city for the travelling salesman problem.
+
+    It simply requires a name and a location. It also provides a method to get
+    the euclidian distance between two cities.
+    """
 
     def __init__(self, name, x, y):
 
@@ -129,14 +140,21 @@ class City(object):
 
     def getLocation(self):
         return (self.getX(), self.getY())
-        
+
     def getDistance(self, other):
+        # Euclidian distance
         x1,y1 = self.getX(), self.getY()
         x2,y2 = other.getX(), other.getY()
+        
         return hypot(x2-x1, y2-y1)
 
 # Class representing individual solution of the travelling salesman problem
 class Solution(object):
+    """Represents an individual solution of the travelling salesman problem.
+
+    For performance purpose, we store the travel distance. It avoids multiples
+    calculations who are preventables.
+    """
 
     def __init__(self):
         self._travel = []
@@ -167,6 +185,7 @@ class Solution(object):
 #                                                                              #
 #------------------------------------------------------------------------------#
 
+# Decorator for static variables
 def staticvar(name, value):
     def decorate(function):
         setattr(function, name, value)
@@ -179,9 +198,10 @@ def staticvar(name, value):
 #                                                                              #
 #------------------------------------------------------------------------------#
 
+# Convert temporarily a list into a deque to perform a shift
 def shift(l, n):
     d = deque(l)
-    d.rotate(-3) # to the left
+    d.rotate(-3) # Negative value: "to the left"
     return list(d)
 
 # Get towns in a file containing names and locations (x, y)
@@ -189,10 +209,12 @@ def getCitiesByFile(citiesFilePath):
     cities = []
     citiesRowData = []
 
+    # One city per row
     with open(citiesFilePath) as citiesFile:
         for citiesRow in citiesFile:
             citiesRowData.append(citiesRow.split(' '))
 
+    # Axiom: [[CITY_NAME] [CITY_X] [CITY_Y]]
     for citiesData in citiesRowData:
         name = citiesData[0]
         x = int(citiesData[1])
@@ -354,15 +376,27 @@ def ga_initialization(cities):
         solution = Solution()
         solution.setTravel(list(population[0].getTravel()))
 
+        # We use the ga_mutation function: it will simply swap two elements
         ga_mutation(solution)
 
         population.append(solution)
 
     return population
 
+# Calculates the population size
 def calculatePopulationSize(citiesCount):
+    """Calculates the size of the population for the travelling salesman problem.
+
+    The size is based on the cities count and the following formula:
+    |1 + log(citiesCount)| * 1000
+
+    This formula ensures enough people in the population and goes pretty quickly
+    in big numbers without exceeding a certain limit.
+    """
+    
     populationSize = int(math.fabs(math.log1p(citiesCount) * 1000))
 
+    # For futures operations purpose, the size must be dividable by 4
     while populationSize % 4 != 0:
         populationSize += 1
         
@@ -376,7 +410,17 @@ def calculatePopulationSize(citiesCount):
 
 # Selection of the genetic algorithm
 def ga_selection(population):
-    population.sort(key = lambda solution: solution.getTravelDistance())
+    """The selection for the genetic algorithm.
+
+    It is based on a ranking roulette wheel.
+    Because instanciation of objects is an expensive operation, especially in
+    high-level programming language, we must avoid it.
+
+    To avoid this, we don't destroy half of the list, but reorganize it. At the
+    end of this function, the first half of the list contains the remaining
+    population for the crossover, and the other half contains the people who
+    "died" at the natural selection.
+    """
     
     populationLength = len(population)
     halfPopulationLength = int(populationLength / 2)
@@ -409,11 +453,11 @@ def ga_selection(population):
         maxRandomValue -= cumulativeRankingValuesList[currentIndex]
         cumulativeRankingValuesList[currentIndex] = 0
 
+    # Bests solutions first
     population.sort(key = lambda solution: solution.getTravelDistance())
 
     for i, selectedIndex in enumerate(selectedSolutionsIndexesList):
-        if selectedIndex != 0:
-            population[i], population[selectedIndex] = population[selectedIndex], population[i]
+        population[i], population[selectedIndex] = population[selectedIndex], population[i]
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -423,6 +467,10 @@ def ga_selection(population):
 
 # Crossover function
 def ga_crossoverAll(population):
+    """Cross the first half of the population.
+
+    The children will be placed in the last half of the list.
+    """
     
     populationLength = len(population)
     halfPopulationLength = int(populationLength / 2)
@@ -432,7 +480,8 @@ def ga_crossoverAll(population):
         ga_crossover(population, i, i + 1, halfPopulationLength + i, halfPopulationLength + i + 1)
         i += 2
 
-def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Index):
+# Crossover function (atom): cross two parents for two children
+def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Index):    
     new1 = []
     new2 = []
     cities1 = population[parent1Index].getTravel()
@@ -470,15 +519,22 @@ def ga_crossover(population, parent1Index, parent2Index, child1Index, child2Inde
 #                                                                              #
 #------------------------------------------------------------------------------#
 
+# Mutation function
 def ga_mutationAll(population):
-    mutationPourcent = 0.5 # 50%
+    """Mutate 30% of the population.
+
+    A mutation is "just" a swap of two cities in our case.
+    """
+    
+    mutationPourcent = 0.3 # 30%
     
     sizePopulation = len(population)
     
     for i in range(round(sizePopulation * mutationPourcent)):
         randomIndex = random.randint(0, sizePopulation - 1)
         ga_mutation(population[randomIndex])
-        
+
+# Mutation function (atom)
 def ga_mutation(solution):
     cities = solution.getTravel()
     
@@ -500,6 +556,12 @@ def ga_mutation(solution):
 @staticvar("counter", 30)
 @staticvar("oldDistance", -1)
 def ga_resultStagnation(bestSolution):
+    """Verify if our final result stagnates.
+
+    A result "stagnates" if it is the same to millimeter (0.001 meter) for 30
+    consecutives iterations.
+    """
+    
     test = False
     
     if ga_resultStagnation.oldDistance == -1:
