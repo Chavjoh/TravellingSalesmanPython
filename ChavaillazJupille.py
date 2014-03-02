@@ -291,7 +291,7 @@ def ga_solve(file = None, gui = True, maxtime = 0):
         
         # Best solution 
         bestSolution = populationSorted[0]
-        print("Best solution distance = ", bestSolution.getTravelDistance())
+        #print("Best solution distance = ", bestSolution.getTravelDistance())
         
         # Draw solution
         GuiManager.drawSolution(bestSolution)
